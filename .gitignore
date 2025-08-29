@@ -1,0 +1,18 @@
+.DS_Store
+dist
+elm-stuff
+node_modules
+.cache
+
+src/Spa/Generated
+src/Generated
+src/I18n/Generated
+
+.env
+
+.elm-spa
+.htmlnanorc.js
+
+# I18N
+i18n.json
+datocms.config.json

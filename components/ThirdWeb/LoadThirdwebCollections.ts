@@ -1,6 +1,8 @@
-import { ThirdwebClient } from 'thirdweb';
+import { getContract, ThirdwebClient, readContract } from 'thirdweb';
 import { loadThirdwebClient, getClientOrThrow } from './LoadThirdwebClient';
 import { AppError } from '../../Interfaces/Error.Interface';
+import { avalancheFuji } from "thirdweb/chains";
+import { env } from '../../config/env';
 
 /**
  * Collection data structure
@@ -61,24 +63,95 @@ const withErrorHandling = (
  * @returns Promise resolving to array of collections
  */
 const fetchCollections = async (client: ThirdwebClient): Promise<ThirdwebCollection[]> => {
-  // TODO: Implement actual ThirdWeb collections fetching
-  // This is a placeholder implementation
-  // In a real implementation, you would use the client to fetch collections
-  // Example: const collections = await client.getCollections();
-  
-  // For now, return mock data structure
-  const mockCollections: ThirdwebCollection[] = [
-    {
-      address: '0x1234567890123456789012345678901234567890',
-      name: 'Sample NFT Collection',
-      symbol: 'SNFT',
-      description: 'A sample NFT collection for testing',
-      image: 'https://example.com/image.png',
-      totalSupply: '100',
-    },
-  ];
-  
-  return mockCollections;
+  try {
+    // Define the standard ERC-721 ABI for the functions we need
+    const erc721ABI = [
+      {
+        "inputs": [],
+        "name": "name",
+        "outputs": [{"name": "", "type": "string"}],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "symbol", 
+        "outputs": [{"name": "", "type": "string"}],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view", 
+        "type": "function"
+      }
+    ] as const;
+
+    // Get contract with ABI
+    const contract = getContract({
+      client,
+      chain: avalancheFuji,
+      address: env.CONTRACT_ADDRESS,
+      abi: erc721ABI, // Provide the ABI
+    });
+
+    console.log('Loaded contract:', contract);
+    
+    // Now read data from this contract using the simple method names (since we have ABI)
+    const [name, symbol] = await Promise.all([
+      readContract({
+        contract,
+        method: "name", // Simple method name works with ABI
+        params: []
+      }),
+      readContract({
+        contract,
+        method: "symbol", // Simple method name works with ABI
+        params: []
+      })
+    ]);
+
+    // Try to get totalSupply (might not exist on all contracts)
+    let totalSupply = "0";
+    try {
+      const supply = await readContract({
+        contract,
+        method: "totalSupply", // Simple method name works with ABI
+        params: []
+      });
+      totalSupply = supply.toString();
+    } catch {
+      // totalSupply not available - that's okay
+    }
+
+    console.log('Collection details:');
+    console.log(`- Name: ${name}`);
+    console.log(`- Symbol: ${symbol}`);
+    console.log(`- Total Supply: ${totalSupply}`);
+
+    const collection: ThirdwebCollection[] = [{
+      address: env.CONTRACT_ADDRESS,
+      name: String(name),
+      symbol: String(symbol),
+      totalSupply,
+      description: `NFT Collection on Avalanche Fuji`,
+    }];
+
+    return collection;
+  } catch (error) {
+    console.error('Error reading contract:', error);
+    
+    // Return fallback data if contract reading fails
+    return [{
+      address: env.CONTRACT_ADDRESS,
+      name: 'Unknown Collection',
+      symbol: 'UNKNOWN',
+      totalSupply: '0',
+      description: 'Contract could not be read (possibly not verified or not ERC-721)',
+    }];
+  }
 };
 
 /**

@@ -19,3 +19,6 @@ src/I18n/Generated
 # I18N
 i18n.json
 datocms.config.json
+
+# Test coverage
+coverage

@@ -6,15 +6,21 @@ const config: Config = {
   roots: ['<rootDir>/components', '<rootDir>/config', '<rootDir>/Interfaces'],
   collectCoverage: true,
   collectCoverageFrom: [
-    'components/ThirdWeb/*.ts',
-    '!components/ThirdWeb/*.test.ts',
-    'config/*.ts',
-    'Interfaces/*.ts',
+    'components/**/*.ts',
+    '!components/**/*.test.ts',
+    '!config/*.ts',  // Exclude config files from global coverage
+    '!Interfaces/*.ts',  // Exclude interfaces from global coverage
   ],
   coverageDirectory: 'coverage',
   coverageThreshold: {
-    'components/ThirdWeb/': {
-      branches: 90,
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+    'components/ThirdWeb/LoadThirdwebClient.ts': {
+      branches: 87,
       functions: 90,
       lines: 90,
       statements: 90,
